@@ -1,4 +1,5 @@
 train.jsonl
 eval.jsonl
 results/
-wandb*
+wandb/
+train_job.job

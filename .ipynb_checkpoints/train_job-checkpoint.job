@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#SBATCH --account=ruishanl_1185
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --gpus-per-task=1
+#SBATCH --constraint=a100|a40|l40s
+#SBATCH --mem=100G
+#SBATCH --time=12:00:00
+
+module purge
+module load gcc/13.3.0
+module load cudnn/8.9.7.29-12-cuda
+module load openmpi/5.0.5
+module load cuda/12.6.3
+module load conda
+
+export CONDA_PREFIX=/home1/mojiang/.conda/envs/pytorch_cv
+
+# Manually prepend the conda environment bin directory to PATH
+export PATH="/home1/mojiang/.conda/envs/pytorch_cv/bin:$PATH"
+
+# source ~/.bashrc
+conda init 
+conda activate pytorch_cv
+
+python train.py \
+    --train_data "train.jsonl" \
+    --val_data "eval.jsonl" \
+    --output_dir "./results" \
+    --project_name "hate-speech-classification" \
+    --run_name "roberta-lora-multilabel-initial" \
+    --wandb_api_key "f3b885fda2a61298c9913099f076df0d7a0d2018"

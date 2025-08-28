@@ -31,45 +31,14 @@ toxic_masculinity_indicators = [
     'is_alt_right_terminology'
 ]
 
-class MultilabelDataset:
-    def __init__(self, jsonl_path, tokenizer, max_length=256):
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.data = self.load_data(jsonl_path)
-    
-    def load_data(self, jsonl_path):
-        data = []
-        with open(jsonl_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                item = json.loads(line.strip())
-                data.append(item)
-        return data
-    
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, idx):
-        item = self.data[idx]
-        encoding = self.tokenizer(
-            item['text'],
-            truncation=True,
-            padding='max_length',
-            max_length=self.max_length,
-            return_tensors='pt'
-        )
-        
-        return {
-            'input_ids': encoding['input_ids'].flatten(),
-            'attention_mask': encoding['attention_mask'].flatten(),
-            'labels': torch.tensor(item['labels'], dtype=torch.float)
-        }
-
 def create_hf_dataset(jsonl_path, tokenizer, max_length=256):
     """Create HuggingFace Dataset from JSONL file"""
     data = []
     with open(jsonl_path, 'r', encoding='utf-8') as f:
         for line in f:
             item = json.loads(line.strip())
+            # Convert to numpy array with float32 dtype
+            item['labels'] = np.array(item['labels'], dtype=np.float32).tolist()
             data.append(item)
     
     def tokenize_function(examples):
@@ -77,13 +46,13 @@ def create_hf_dataset(jsonl_path, tokenizer, max_length=256):
             examples['text'],
             truncation=True,
             padding='max_length',
-            max_length=max_length,
-            return_tensors='pt'
+            max_length=max_length
         )
-        tokenized['labels'] = examples['labels']
+        # Convert all labels to float32
+        tokenized['labels'] = [np.array(labels, dtype=np.float32).tolist() 
+                              for labels in examples['labels']]
         return tokenized
     
-    # Convert to HuggingFace Dataset
     dataset = Dataset.from_list(data)
     dataset = dataset.map(tokenize_function, batched=True)
     dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
@@ -116,15 +85,11 @@ def compute_metrics(eval_pred):
     }
 
 class MultilabelTrainer(Trainer):
-    """Custom trainer for multilabel classification with BCEWithLogitsLoss"""
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         labels = inputs.get("labels")
+        # Let the model compute its own loss
         outputs = model(**inputs)
-        logits = outputs.get('logits')
-        
-        # Use BCEWithLogitsLoss for multilabel classification
-        loss_fct = torch.nn.BCEWithLogitsLoss()
-        loss = loss_fct(logits, labels)
+        loss = outputs.loss if hasattr(outputs, 'loss') else outputs.get('loss')
         
         return (loss, outputs) if return_outputs else loss
 
@@ -159,14 +124,12 @@ def main():
     if args.wandb_api_key != 'YOUR_WANDB_API_KEY_HERE':
         os.environ["WANDB_API_KEY"] = args.wandb_api_key
         wandb.init(project=args.project_name, name=args.run_name)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Load tokenizer
     print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    
-    # Add pad token if it doesn't exist
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
     
     # Load datasets
     print("Loading datasets...")
@@ -199,6 +162,8 @@ def main():
     # Apply LoRA to model
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
+
+    model = model.to(device)
     
     # Training arguments
     training_args = TrainingArguments(
@@ -215,7 +180,7 @@ def main():
         eval_strategy="steps",
         save_strategy="steps",
         load_best_model_at_end=True,
-        metric_for_best_model="eval_accuracy",
+        metric_for_best_model="eval_f1_macro",
         greater_is_better=True,
         learning_rate=args.learning_rate,
         optim="adamw_torch",
@@ -240,26 +205,27 @@ def main():
     )
     
     # Train the model
-    # print("Starting training...")
-    # trainer.train()
+    print("Starting training...")
+    trainer.train()
     
-    # # Save the final model
-    # print("Saving model...")
-    # trainer.save_model(f"{args.output_dir}/final_model")
-    # tokenizer.save_pretrained(f"{args.output_dir}/final_model")
+    # Save the final model
+    print("Saving model...")
+    trainer.save_model(f"{args.output_dir}/final_model")
+    tokenizer.save_pretrained(f"{args.output_dir}/final_model")
     
-    # # Final evaluation
-    # print("Final evaluation...")
-    # eval_results = trainer.evaluate()
-    # print("Final evaluation results:")
-    # for key, value in eval_results.items():
-    #     print(f"{key}: {value}")
+    # Final evaluation
+    print("Final evaluation...")
+    eval_results = trainer.evaluate()
+    print("Final evaluation results:")
+    for key, value in eval_results.items():
+        print(f"{key}: {value}")
     
-    # # Save evaluation results
-    # with open(f"{args.output_dir}/eval_results.json", "w") as f:
-    #     json.dump(eval_results, f, indent=2)
+    # Save evaluation results
+    with open(f"{args.output_dir}/eval_results.json", "w") as f:
+        json.dump(eval_results, f, indent=2)
     
-    # print("Training completed!")
+    print("Training completed!")
+    print(train_dataset[0])
 
 if __name__ == "__main__":
     main()
