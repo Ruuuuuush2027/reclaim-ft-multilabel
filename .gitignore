@@ -1,5 +1,6 @@
 train.jsonl
 eval.jsonl
+test.jsonl
 results/
 wandb/
 train_job.job

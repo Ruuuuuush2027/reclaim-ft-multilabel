@@ -24,3 +24,5 @@ python train.py \
     --lora_alpha 32 \
     --lora_dropout 0.05
 ```
+
+dataset location: https://github.com/Will-Dolan/ort-frames

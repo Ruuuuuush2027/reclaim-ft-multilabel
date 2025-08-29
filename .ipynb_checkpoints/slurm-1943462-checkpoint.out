@@ -1,0 +1,61 @@
+==========================================
+SLURM_JOB_ID = 1943462
+SLURM_JOB_NODELIST = b10-13
+TMPDIR = /tmp/SLURM_1943462
+==========================================
+no change     /apps/conda/miniforge3/25.3.0/condabin/conda
+no change     /apps/conda/miniforge3/25.3.0/bin/conda
+no change     /apps/conda/miniforge3/25.3.0/bin/conda-env
+no change     /apps/conda/miniforge3/25.3.0/bin/activate
+no change     /apps/conda/miniforge3/25.3.0/bin/deactivate
+no change     /apps/conda/miniforge3/25.3.0/etc/profile.d/conda.sh
+no change     /apps/conda/miniforge3/25.3.0/etc/fish/conf.d/conda.fish
+no change     /apps/conda/miniforge3/25.3.0/shell/condabin/Conda.psm1
+no change     /apps/conda/miniforge3/25.3.0/shell/condabin/conda-hook.ps1
+no change     /apps/conda/miniforge3/25.3.0/lib/python3.12/site-packages/xontrib/conda.xsh
+no change     /apps/conda/miniforge3/25.3.0/etc/profile.d/conda.csh
+no change     /home1/mojiang/.bashrc
+No action taken.
+
+CondaError: Run 'conda init' before 'conda activate'
+
+wandb: Currently logged in as: maohejiang6 (maohejiang6-usc) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.21.0
+wandb: Run data is saved locally in /scratch1/mojiang/reclaim-ft-multilabel/wandb/run-20250828_204122-iq96s8t3
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run roberta-lora-multilabel-initial
+wandb: ⭐️ View project at https://wandb.ai/maohejiang6-usc/hate-speech-classification
+wandb: 🚀 View run at https://wandb.ai/maohejiang6-usc/hate-speech-classification/runs/iq96s8t3
+Loading tokenizer...
+Loading datasets...
+Map:   0%|                                                                                                                                              | 0/9625 [00:00<?, ? examples/s]Map:  10%|█████████████▍                                                                                                                   | 1000/9625 [00:00<00:01, 7221.19 examples/s]Map:  21%|██████████████████████████▊                                                                                                      | 2000/9625 [00:00<00:00, 8197.89 examples/s]Map:  31%|████████████████████████████████████████▏                                                                                        | 3000/9625 [00:00<00:00, 8732.25 examples/s]Map:  42%|█████████████████████████████████████████████████████▌                                                                           | 4000/9625 [00:00<00:00, 8941.49 examples/s]Map:  52%|███████████████████████████████████████████████████████████████████                                                              | 5000/9625 [00:00<00:00, 9145.69 examples/s]Map:  62%|████████████████████████████████████████████████████████████████████████████████▍                                                | 6000/9625 [00:00<00:00, 9227.32 examples/s]Map:  73%|█████████████████████████████████████████████████████████████████████████████████████████████▊                                   | 7000/9625 [00:00<00:00, 9347.82 examples/s]Map:  83%|███████████████████████████████████████████████████████████████████████████████████████████████████████████▏                     | 8000/9625 [00:00<00:00, 9407.88 examples/s]Map:  94%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▌        | 9000/9625 [00:00<00:00, 9434.60 examples/s]Map: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 9625/9625 [00:01<00:00, 9049.85 examples/s]
+Map:   0%|                                                                                                                                               | 0/602 [00:00<?, ? examples/s]Map: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 602/602 [00:00<00:00, 9106.44 examples/s]
+Some weights of RobertaForSequenceClassification were not initialized from the model checkpoint at roberta-base and are newly initialized: ['classifier.dense.bias', 'classifier.dense.weight', 'classifier.out_proj.bias', 'classifier.out_proj.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/scratch1/mojiang/reclaim-ft-multilabel/train.py:204: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `MultilabelTrainer.__init__`. Use `processing_class` instead.
+  trainer = MultilabelTrainer(
+Detected kernel version 4.18.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+Train dataset size: 9625
+Validation dataset size: 602
+Loading model...
+Setting up LoRA...
+trainable params: 3,254,797 || all params: 127,910,426 || trainable%: 2.5446
+Starting training...
+  0%|                                                                                                                                                          | 0/3010 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/scratch1/mojiang/reclaim-ft-multilabel/train.py", line 238, in <module>
+    main()
+  File "/scratch1/mojiang/reclaim-ft-multilabel/train.py", line 216, in main
+    trainer.train()
+  File "/home1/mojiang/.conda/envs/pytorch_cv/lib/python3.11/site-packages/transformers/trainer.py", line 2206, in train
+    return inner_training_loop(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home1/mojiang/.conda/envs/pytorch_cv/lib/python3.11/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/mojiang/.conda/envs/pytorch_cv/lib/python3.11/site-packages/transformers/trainer.py", line 3749, in training_step
+    loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: MultilabelTrainer.compute_loss() got an unexpected keyword argument 'num_items_in_batch'
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mroberta-lora-multilabel-initial[0m at: [34mhttps://wandb.ai/maohejiang6-usc/hate-speech-classification/runs/iq96s8t3[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/run-20250828_204122-iq96s8t3/logs[0m

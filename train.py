@@ -1,5 +1,6 @@
 import json
 import torch
+import torch.nn as nn
 import numpy as np
 import wandb
 from datasets import Dataset
@@ -62,7 +63,7 @@ def create_hf_dataset(jsonl_path, tokenizer, max_length=256):
 def compute_metrics(eval_pred):
     """Compute metrics for multilabel classification"""
     predictions = eval_pred.predictions
-    labels = eval_pred.labels
+    labels = eval_pred.label_ids
     
     # Apply sigmoid to get probabilities
     sigmoid = torch.nn.Sigmoid()
@@ -71,26 +72,33 @@ def compute_metrics(eval_pred):
     y_pred = (probs > 0.5).int().numpy()
     y_true = labels.astype(int)
     
-    # Calculate metrics
+    # Calculate metrics with zero_division parameter to handle edge cases
     accuracy = accuracy_score(y_true, y_pred)
-    f1_weighted = f1_score(y_true, y_pred, average='weighted')
-    precision_macro = precision_score(y_true, y_pred, average='macro')
-    recall_macro = recall_score(y_true, y_pred, average='macro')
+    f1_weighted = f1_score(y_true, y_pred, average='weighted', zero_division=0)
+    precision_macro = precision_score(y_true, y_pred, average='macro', zero_division=0)
+    recall_macro = recall_score(y_true, y_pred, average='macro', zero_division=0)
 
-    return {
+    res = {
         'accuracy': accuracy,
         'f1_weighted': f1_weighted,
         'precision_macro': precision_macro,
         'recall_macro': recall_macro
     }
+    return res
 
 class MultilabelTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-        labels = inputs.get("labels")
-        # Let the model compute its own loss
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch = None):
+        labels = inputs.pop("labels")
         outputs = model(**inputs)
-        loss = outputs.loss if hasattr(outputs, 'loss') else outputs.get('loss')
-        
+        logits = outputs.logits
+
+        # Instantiate BCE with Logits Loss
+        loss_fct = nn.BCEWithLogitsLoss()
+
+        # Compute the loss
+        loss = loss_fct(logits.view(-1, self.model.config.num_labels), 
+                        labels.float().view(-1, self.model.config.num_labels))
+
         return (loss, outputs) if return_outputs else loss
 
 def main():
@@ -180,7 +188,7 @@ def main():
         eval_strategy="steps",
         save_strategy="steps",
         load_best_model_at_end=True,
-        metric_for_best_model="eval_f1_macro",
+        metric_for_best_model="eval_f1_weighted",
         greater_is_better=True,
         learning_rate=args.learning_rate,
         optim="adamw_torch",
@@ -189,8 +197,7 @@ def main():
         report_to="wandb" if args.wandb_api_key != 'YOUR_WANDB_API_KEY_HERE' else None,
         run_name=args.run_name,
         seed=42,
-        fp16=torch.cuda.is_available(),
-        label_names=toxic_masculinity_indicators
+        fp16=torch.cuda.is_available()
     )
     
     # Initialize trainer
